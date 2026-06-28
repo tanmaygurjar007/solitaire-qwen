@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="A production-quality Klondike Solitaire game with smooth animations, hint system, and accessibility features">
+  <meta name="theme-color" content="#1a6b3c">
+  <title>Solitaire - Klondike</title>
+  
+  <!-- Preload critical assets -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Skip link for accessibility -->
+  <a href="#game-area" class="skip-link">Skip to game area</a>
+  
+  <!-- Live region for screen reader announcements -->
+  <div id="live-region" class="live-region" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Header with stats and controls -->
+  <header id="header">
+    <h1>♠ Solitaire</h1>
+    
+    <div class="header-stats" role="group" aria-label="Game statistics">
+      <div class="stat">
+        <span class="stat-label">Score</span>
+        <span class="stat-value" id="score-display" aria-live="polite">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Moves</span>
+        <span class="stat-value" id="moves-display" aria-live="polite">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Time</span>
+        <span class="stat-value" id="time-display" aria-live="off">0:00</span>
+      </div>
+    </div>
+    
+    <div class="header-actions" role="group" aria-label="Game controls">
+      <button class="btn" id="btn-undo" aria-label="Undo last move" disabled>↩ Undo</button>
+      <button class="btn" id="btn-redo" aria-label="Redo last undone move" disabled>↪ Redo</button>
+      <button class="btn" id="btn-hint" aria-label="Get a hint">💡 Hint</button>
+      <button class="btn" id="btn-pause" aria-label="Pause game">⏸ Pause</button>
+      <button class="btn" id="btn-settings" aria-label="Open settings">⚙ Settings</button>
+      <button class="btn btn-primary" id="btn-new" aria-label="Start new game">New Game</button>
+    </div>
+  </header>
+
+  <!-- Main game area -->
+  <main id="game-area" role="application" aria-label="Solitaire game board" tabindex="0">
+    <!-- Top row: stock, waste, foundations -->
+    <div id="top-row">
+      <div class="pile" id="stock" role="button" aria-label="Stock pile - click to draw cards" tabindex="0">
+        <div class="pile-label">↺</div>
+      </div>
+      <div class="pile" id="waste" aria-label="Waste pile"></div>
+      <div class="spacer"></div>
+      <div class="pile foundation" id="foundation-0" data-suit="♠" aria-label="Spades foundation">
+        <div class="pile-label">♠</div>
+      </div>
+      <div class="pile foundation" id="foundation-1" data-suit="♥" aria-label="Hearts foundation">
+        <div class="pile-label">♥</div>
+      </div>
+      <div class="pile foundation" id="foundation-2" data-suit="♦" aria-label="Diamonds foundation">
+        <div class="pile-label">♦</div>
+      </div>
+      <div class="pile foundation" id="foundation-3" data-suit="♣" aria-label="Clubs foundation">
+        <div class="pile-label">♣</div>
+      </div>
+    </div>
+
+    <!-- Tableau columns -->
+    <div id="tableau" role="group" aria-label="Tableau columns">
+      <div class="pile tableau-pile" id="tableau-0" data-column="0" aria-label="Tableau column 1"></div>
+      <div class="pile tableau-pile" id="tableau-1" data-column="1" aria-label="Tableau column 2"></div>
+      <div class="pile tableau-pile" id="tableau-2" data-column="2" aria-label="Tableau column 3"></div>
+      <div class="pile tableau-pile" id="tableau-3" data-column="3" aria-label="Tableau column 4"></div>
+      <div class="pile tableau-pile" id="tableau-4" data-column="4" aria-label="Tableau column 5"></div>
+      <div class="pile tableau-pile" id="tableau-5" data-column="5" aria-label="Tableau column 6"></div>
+      <div class="pile tableau-pile" id="tableau-6" data-column="6" aria-label="Tableau column 7"></div>
+    </div>
+  </main>
+
+  <!-- Win overlay -->
+  <div id="win-overlay" role="dialog" aria-modal="true" aria-labelledby="win-title">
+    <h2 id="win-title">You Win!</h2>
+    <p id="win-stats"></p>
+    <button class="btn btn-primary" id="btn-win-new" style="margin-top:10px;padding:10px 28px;font-size:14px;">Play Again</button>
+  </div>
+
+  <!-- Pause overlay -->
+  <div id="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <h2 id="pause-title">Game Paused</h2>
+    <button class="btn btn-primary" id="btn-resume" style="padding:10px 28px;font-size:14px;">Resume</button>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-content">
+      <h2 id="settings-title">Settings</h2>
+      
+      <div class="setting-item">
+        <span class="setting-label">Draw Count</span>
+        <div class="setting-control">
+          <select id="setting-draw-count" aria-label="Cards to draw from stock">
+            <option value="1">1 Card</option>
+            <option value="3">3 Cards</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <span class="setting-label">Animation Speed</span>
+        <div class="setting-control">
+          <input type="range" id="setting-animation-speed" min="0.5" max="2" step="0.1" value="1" aria-label="Animation speed">
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <span class="setting-label">Sound Effects</span>
+        <div class="setting-control">
+          <label class="toggle">
+            <input type="checkbox" id="setting-sound" checked aria-label="Enable sound effects">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <span class="setting-label">Auto Complete</span>
+        <div class="setting-control">
+          <label class="toggle">
+            <input type="checkbox" id="setting-autocomplete" checked aria-label="Enable auto complete">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <span class="setting-label">Hints</span>
+        <div class="setting-control">
+          <label class="toggle">
+            <input type="checkbox" id="setting-hints" checked aria-label="Enable hints">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <span class="setting-label">Theme</span>
+        <div class="setting-control">
+          <select id="setting-theme" aria-label="Color theme">
+            <option value="classic">Classic Green</option>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="high-contrast">High Contrast</option>
+          </select>
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn" id="btn-settings-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-settings-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import main game module as ES module -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
